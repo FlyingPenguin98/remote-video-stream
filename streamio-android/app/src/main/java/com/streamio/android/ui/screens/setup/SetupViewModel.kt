@@ -2,6 +2,7 @@ package com.streamio.android.ui.screens.setup
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.streamio.android.data.preferences.AppPreferences
 import com.streamio.android.data.repository.AuthRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -20,6 +21,7 @@ data class SetupState(
 @HiltViewModel
 class SetupViewModel @Inject constructor(
     private val authRepository: AuthRepository,
+    private val prefs: AppPreferences,
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(SetupState())
@@ -29,8 +31,22 @@ class SetupViewModel @Inject constructor(
         _state.update { it.copy(url = url, error = null) }
     }
 
+    fun tryDemo() {
+        _state.update { it.copy(url = "demo") }
+        connect()
+    }
+
     fun connect() {
-        val url = _state.value.url
+        val url = _state.value.url.trim()
+
+        if (url.lowercase() == "demo") {
+            viewModelScope.launch {
+                prefs.setServerUrl("demo")
+                _state.update { it.copy(setupComplete = true) }
+            }
+            return
+        }
+
         if (url.isBlank()) {
             _state.update { it.copy(error = "Please enter a server URL") }
             return
@@ -38,14 +54,13 @@ class SetupViewModel @Inject constructor(
 
         viewModelScope.launch {
             _state.update { it.copy(loading = true, error = null) }
-            // checkHealth normalizes + persists the URL, and rolls back on failure
             authRepository.checkHealth(url)
                 .onSuccess { _state.update { it.copy(loading = false, setupComplete = true) } }
                 .onFailure { err ->
                     _state.update {
                         it.copy(
                             loading = false,
-                            error = "Could not connect: ${err.message}. Check the URL and make sure your server is running."
+                            error = "Could not connect: ${err.message}. Check the URL and make sure your server is running.",
                         )
                     }
                 }

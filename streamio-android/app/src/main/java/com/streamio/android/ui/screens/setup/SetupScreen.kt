@@ -9,6 +9,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.streamio.android.ui.theme.StreamioRed
@@ -78,6 +79,18 @@ fun SetupScreen(
                     Text("Connect")
                 }
             }
+
+            HorizontalDivider()
+
+            TextButton(onClick = viewModel::tryDemo) {
+                Text("Try Demo Mode", color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+            Text(
+                text = "Explore the UI without a server",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
+                textAlign = TextAlign.Center,
+            )
         }
     }
 }

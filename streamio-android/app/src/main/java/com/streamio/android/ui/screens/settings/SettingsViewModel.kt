@@ -15,6 +15,7 @@ data class SettingsState(
     val username: String = "",
     val role: String = "",
     val serverUrl: String = "",
+    val isDemoMode: Boolean = false,
     val editingServerUrl: Boolean = false,
     val newServerUrl: String = "",
     val validating: Boolean = false,
@@ -50,7 +51,7 @@ class SettingsViewModel @Inject constructor(
         }
         viewModelScope.launch {
             prefs.serverUrl.collect { url ->
-                _state.update { it.copy(serverUrl = url ?: "") }
+                _state.update { it.copy(serverUrl = url ?: "", isDemoMode = url == "demo") }
             }
         }
     }
@@ -65,9 +66,14 @@ class SettingsViewModel @Inject constructor(
 
     fun saveServerUrl() {
         viewModelScope.launch {
+            val newUrl = _state.value.newServerUrl.trim()
+            if (newUrl.lowercase() == "demo") {
+                prefs.setServerUrl("demo")
+                _state.update { it.copy(editingServerUrl = false, validating = false) }
+                return@launch
+            }
             _state.update { it.copy(validating = true, error = null) }
-            // checkHealth persists the new URL and restores the old one on failure
-            authRepo.checkHealth(_state.value.newServerUrl)
+            authRepo.checkHealth(newUrl)
                 .onSuccess {
                     _state.update { it.copy(editingServerUrl = false, validating = false) }
                 }

@@ -27,6 +27,7 @@ class AppPreferences @Inject constructor(
     val token: Flow<String?> = context.dataStore.data.map { it[tokenKey] }
     val username: Flow<String?> = context.dataStore.data.map { it[usernameKey] }
     val role: Flow<String?> = context.dataStore.data.map { it[roleKey] }
+    val isDemoMode: Flow<Boolean> = serverUrl.map { it == "demo" }
 
     suspend fun setServerUrl(url: String) {
         context.dataStore.edit { it[serverUrlKey] = url.trimEnd('/') }

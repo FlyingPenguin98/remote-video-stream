@@ -21,10 +21,16 @@ fun LoginScreen(
     viewModel: LoginViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsState()
+    val isDemoMode by viewModel.isDemoMode.collectAsState()
     val focusManager = LocalFocusManager.current
 
     LaunchedEffect(state.loggedIn) {
         if (state.loggedIn) onLoginSuccess()
+    }
+
+    // Auto-enter demo mode without user interaction
+    LaunchedEffect(isDemoMode) {
+        if (isDemoMode) viewModel.loginAsDemo()
     }
 
     Box(
@@ -33,57 +39,72 @@ fun LoginScreen(
             .padding(24.dp),
         contentAlignment = Alignment.Center,
     ) {
-        Column(
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(14.dp),
-            modifier = Modifier.widthIn(max = 360.dp),
-        ) {
-            Text(
-                text = "Streamio",
-                style = MaterialTheme.typography.displaySmall,
-                color = StreamioRed,
-            )
-            Text(
-                text = "Sign in to your account",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-
-            state.error?.let {
-                Text(it, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
-            }
-
-            OutlinedTextField(
-                value = state.username,
-                onValueChange = viewModel::onUsernameChanged,
-                label = { Text("Username") },
-                modifier = Modifier.fillMaxWidth(),
-                singleLine = true,
-                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
-                keyboardActions = KeyboardActions(onNext = { focusManager.moveFocus(FocusDirection.Down) }),
-            )
-
-            OutlinedTextField(
-                value = state.password,
-                onValueChange = viewModel::onPasswordChanged,
-                label = { Text("Password") },
-                modifier = Modifier.fillMaxWidth(),
-                singleLine = true,
-                visualTransformation = PasswordVisualTransformation(),
-                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
-                keyboardActions = KeyboardActions(onDone = { viewModel.login() }),
-            )
-
-            Button(
-                onClick = viewModel::login,
-                modifier = Modifier.fillMaxWidth(),
-                enabled = !state.loading,
-                colors = ButtonDefaults.buttonColors(containerColor = StreamioRed),
+        if (isDemoMode) {
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(16.dp),
             ) {
-                if (state.loading) {
-                    CircularProgressIndicator(modifier = Modifier.size(18.dp), strokeWidth = 2.dp)
-                } else {
-                    Text("Sign in")
+                Text("Streamio", style = MaterialTheme.typography.displaySmall, color = StreamioRed)
+                CircularProgressIndicator()
+                Text(
+                    "Entering demo mode…",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+        } else {
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(14.dp),
+                modifier = Modifier.widthIn(max = 360.dp),
+            ) {
+                Text(
+                    text = "Streamio",
+                    style = MaterialTheme.typography.displaySmall,
+                    color = StreamioRed,
+                )
+                Text(
+                    text = "Sign in to your account",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+
+                state.error?.let {
+                    Text(it, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
+                }
+
+                OutlinedTextField(
+                    value = state.username,
+                    onValueChange = viewModel::onUsernameChanged,
+                    label = { Text("Username") },
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true,
+                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
+                    keyboardActions = KeyboardActions(onNext = { focusManager.moveFocus(FocusDirection.Down) }),
+                )
+
+                OutlinedTextField(
+                    value = state.password,
+                    onValueChange = viewModel::onPasswordChanged,
+                    label = { Text("Password") },
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true,
+                    visualTransformation = PasswordVisualTransformation(),
+                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
+                    keyboardActions = KeyboardActions(onDone = { viewModel.login() }),
+                )
+
+                Button(
+                    onClick = viewModel::login,
+                    modifier = Modifier.fillMaxWidth(),
+                    enabled = !state.loading,
+                    colors = ButtonDefaults.buttonColors(containerColor = StreamioRed),
+                ) {
+                    if (state.loading) {
+                        CircularProgressIndicator(modifier = Modifier.size(18.dp), strokeWidth = 2.dp)
+                    } else {
+                        Text("Sign in")
+                    }
                 }
             }
         }

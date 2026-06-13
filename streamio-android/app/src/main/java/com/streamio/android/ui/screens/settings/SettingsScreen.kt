@@ -32,6 +32,23 @@ fun SettingsScreen(
     ) {
         Text("Settings", style = MaterialTheme.typography.headlineMedium)
 
+        if (state.isDemoMode) {
+            Card(
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.secondaryContainer,
+                ),
+            ) {
+                Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Text("Demo Mode", style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.onSecondaryContainer)
+                    Text(
+                        "You're exploring Streamio without a server. Change the server URL below to connect to your Raspberry Pi.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSecondaryContainer,
+                    )
+                }
+            }
+        }
+
         HorizontalDivider()
 
         // Account section
@@ -50,40 +67,42 @@ fun SettingsScreen(
             }
         }
 
-        HorizontalDivider()
+        if (!state.isDemoMode) {
+            HorizontalDivider()
 
-        // Password section
-        Text("Change password", style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.primary)
+            // Password section
+            Text("Change password", style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.primary)
 
-        OutlinedTextField(
-            value = state.currentPassword,
-            onValueChange = viewModel::onCurrentPasswordChanged,
-            label = { Text("Current password") },
-            modifier = Modifier.fillMaxWidth(),
-            singleLine = true,
-            visualTransformation = PasswordVisualTransformation(),
-        )
-        OutlinedTextField(
-            value = state.newPassword,
-            onValueChange = viewModel::onNewPasswordChanged,
-            label = { Text("New password (min 8 characters)") },
-            modifier = Modifier.fillMaxWidth(),
-            singleLine = true,
-            visualTransformation = PasswordVisualTransformation(),
-            isError = state.passwordError != null,
-            supportingText = state.passwordError?.let { { Text(it, color = MaterialTheme.colorScheme.error) } },
-        )
-        if (state.passwordChanged) {
-            Text("Password updated", color = MaterialTheme.colorScheme.primary, style = MaterialTheme.typography.bodySmall)
-        }
-        OutlinedButton(
-            onClick = viewModel::changePassword,
-            enabled = !state.changingPassword,
-        ) {
-            if (state.changingPassword) {
-                CircularProgressIndicator(modifier = Modifier.size(16.dp), strokeWidth = 2.dp)
-            } else {
-                Text("Update password")
+            OutlinedTextField(
+                value = state.currentPassword,
+                onValueChange = viewModel::onCurrentPasswordChanged,
+                label = { Text("Current password") },
+                modifier = Modifier.fillMaxWidth(),
+                singleLine = true,
+                visualTransformation = PasswordVisualTransformation(),
+            )
+            OutlinedTextField(
+                value = state.newPassword,
+                onValueChange = viewModel::onNewPasswordChanged,
+                label = { Text("New password (min 8 characters)") },
+                modifier = Modifier.fillMaxWidth(),
+                singleLine = true,
+                visualTransformation = PasswordVisualTransformation(),
+                isError = state.passwordError != null,
+                supportingText = state.passwordError?.let { { Text(it, color = MaterialTheme.colorScheme.error) } },
+            )
+            if (state.passwordChanged) {
+                Text("Password updated", color = MaterialTheme.colorScheme.primary, style = MaterialTheme.typography.bodySmall)
+            }
+            OutlinedButton(
+                onClick = viewModel::changePassword,
+                enabled = !state.changingPassword,
+            ) {
+                if (state.changingPassword) {
+                    CircularProgressIndicator(modifier = Modifier.size(16.dp), strokeWidth = 2.dp)
+                } else {
+                    Text("Update password")
+                }
             }
         }
 
@@ -97,6 +116,7 @@ fun SettingsScreen(
                 value = state.newServerUrl,
                 onValueChange = viewModel::onNewServerUrlChanged,
                 label = { Text("Server URL") },
+                placeholder = { Text("http://192.168.1.100:3000 or \"demo\"") },
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true,
                 isError = state.error != null,
@@ -123,7 +143,7 @@ fun SettingsScreen(
                 Column {
                     Text("Server URL", style = MaterialTheme.typography.bodyLarge)
                     Text(
-                        state.serverUrl.ifEmpty { "Not configured" },
+                        if (state.isDemoMode) "Demo mode (no server)" else state.serverUrl.ifEmpty { "Not configured" },
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )

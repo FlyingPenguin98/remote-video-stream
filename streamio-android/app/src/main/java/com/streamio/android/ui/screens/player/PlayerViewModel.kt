@@ -31,6 +31,7 @@ data class PlayerState(
     val loading: Boolean = true,
     val error: String? = null,
     val isDirectPlay: Boolean = false,
+    val isDemoMode: Boolean = false,
 )
 
 @OptIn(UnstableApi::class)
@@ -95,6 +96,11 @@ class PlayerViewModel @Inject constructor(
     private fun startPlayback() {
         viewModelScope.launch {
             _state.update { it.copy(loading = true, error = null) }
+
+            if (streamRepo.isDemoMode()) {
+                _state.update { it.copy(loading = false, isDemoMode = true) }
+                return@launch
+            }
 
             val (resumeSec, durationSec) = loadResumeInfo()
             knownDurationSec = durationSec
