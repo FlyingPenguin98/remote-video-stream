@@ -1,0 +1,18 @@
+{
+  "name": "remote-video-stream",
+  "private": true,
+  "workspaces": ["server", "client"],
+  "scripts": {
+    "dev": "concurrently -n server,client -c cyan,magenta \"npm run dev -w server\" \"npm run dev -w client\"",
+    "build": "npm run build -w client && npm run build -w server",
+    "start": "node server/dist/index.js",
+    "db:migrate": "tsx server/src/db/migrate.ts",
+    "scan": "tsx scripts/scan.ts",
+    "create-user": "tsx scripts/create-user.ts"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.0",
+    "tsx": "^4.19.0",
+    "typescript": "^5.7.0"
+  }
+}
