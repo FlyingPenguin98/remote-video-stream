@@ -60,7 +60,6 @@ dependencies {
     debugImplementation("androidx.compose.ui:ui-tooling")
 
     // Compose TV
-    implementation("androidx.tv:tv-foundation:1.0.0")
     implementation("androidx.tv:tv-material:1.0.0")
 
     // Activity + Navigation

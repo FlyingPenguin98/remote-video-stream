@@ -4,6 +4,8 @@ import com.streamio.android.data.api.StreamioApi
 import com.streamio.android.data.api.models.LoginRequest
 import com.streamio.android.data.api.models.User
 import com.streamio.android.data.preferences.AppPreferences
+import kotlinx.coroutines.flow.first
+import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -32,14 +34,38 @@ class AuthRepository @Inject constructor(
         if (!response.isSuccessful) error(response.errorBody()?.string() ?: "Update failed")
     }
 
-    suspend fun checkHealth(serverUrl: String): Result<Unit> = runCatching {
-        val savedUrl = prefs.serverUrl
-        prefs.setServerUrl(serverUrl)
-        val response = api.health()
-        if (!response.isSuccessful) error("Server returned ${response.code()}")
+    /**
+     * Persists the URL (the interceptor reads it from DataStore), probes
+     * /api/health, and restores the previous URL if the server is unreachable.
+     */
+    suspend fun checkHealth(serverUrl: String): Result<Unit> {
+        val normalized = normalizeServerUrl(serverUrl)
+            ?: return Result.failure(IllegalArgumentException("Invalid server URL"))
+
+        val previous = prefs.serverUrl.first()
+        prefs.setServerUrl(normalized)
+        return runCatching {
+            val response = api.health()
+            if (!response.isSuccessful) error("Server returned ${response.code()}")
+            Unit
+        }.onFailure {
+            if (previous != null) prefs.setServerUrl(previous) else prefs.clearServerUrl()
+        }
     }
 
     suspend fun logout() {
         prefs.clearAuth()
+    }
+
+    companion object {
+        /** Adds an http:// scheme if missing; returns null if still unparseable. */
+        fun normalizeServerUrl(raw: String): String? {
+            val trimmed = raw.trim().trimEnd('/')
+            if (trimmed.isBlank()) return null
+            val withScheme =
+                if (trimmed.startsWith("http://") || trimmed.startsWith("https://")) trimmed
+                else "http://$trimmed"
+            return if (withScheme.toHttpUrlOrNull() != null) withScheme else null
+        }
     }
 }

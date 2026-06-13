@@ -30,9 +30,6 @@ private const val ROUTE_LOGIN = "login"
 private const val ROUTE_HOME = "home"
 private const val ROUTE_MOVIES = "movies"
 private const val ROUTE_SHOWS = "shows"
-private const val ROUTE_SHOW_DETAIL = "shows/{showId}"
-private const val ROUTE_PLAYER_MOVIE = "player/movie/{mediaItemId}?title={title}&resumePositionSec={resumePositionSec}"
-private const val ROUTE_PLAYER_EPISODE = "player/episode/{episodeId}/{showId}?title={title}&resumePositionSec={resumePositionSec}"
 private const val ROUTE_SETTINGS = "settings"
 
 @Composable
@@ -41,10 +38,14 @@ fun AppNavGraph(
     isLoggedIn: Boolean,
 ) {
     val navController = rememberNavController()
-    val startDestination = when {
-        !hasServerUrl -> ROUTE_SETUP
-        !isLoggedIn -> ROUTE_LOGIN
-        else -> ROUTE_HOME
+    // Frozen at first composition: screens navigate explicitly from then on,
+    // and a changing startDestination would reset the whole back stack.
+    val startDestination = remember {
+        when {
+            !hasServerUrl -> ROUTE_SETUP
+            !isLoggedIn -> ROUTE_LOGIN
+            else -> ROUTE_HOME
+        }
     }
 
     val bottomNavRoutes = listOf(ROUTE_HOME, ROUTE_MOVIES, ROUTE_SHOWS, ROUTE_SETTINGS)
@@ -173,8 +174,6 @@ fun AppNavGraph(
                 route = "player/movie/{mediaItemId}",
                 arguments = listOf(
                     navArgument("mediaItemId") { type = NavType.IntType },
-                    navArgument("title") { type = NavType.StringType; defaultValue = "" },
-                    navArgument("resumePositionSec") { type = NavType.FloatType; defaultValue = 0f },
                 ),
             ) {
                 PlayerScreen(onBack = { navController.popBackStack() })
@@ -185,8 +184,6 @@ fun AppNavGraph(
                 arguments = listOf(
                     navArgument("episodeId") { type = NavType.IntType },
                     navArgument("showId") { type = NavType.IntType },
-                    navArgument("title") { type = NavType.StringType; defaultValue = "" },
-                    navArgument("resumePositionSec") { type = NavType.FloatType; defaultValue = 0f },
                 ),
             ) {
                 PlayerScreen(onBack = { navController.popBackStack() })

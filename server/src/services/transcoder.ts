@@ -21,6 +21,7 @@ export interface StreamResult {
   sessionId: string;
   manifestUrl: string;
   isDirect: false;
+  resumePosition: number;
 }
 
 function buildFfmpegArgs(filePath: string, segmentDir: string, startOffset: number): string[] {
@@ -130,6 +131,7 @@ export async function startStream(opts: StartStreamOptions): Promise<StreamResul
     sessionId,
     manifestUrl: `/api/stream/${sessionId}/manifest.m3u8`,
     isDirect: false,
+    resumePosition: opts.startOffset,
   };
 }
 

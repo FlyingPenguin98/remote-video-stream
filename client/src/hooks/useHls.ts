@@ -1,10 +1,12 @@
 import { useEffect, useRef } from 'react';
 import Hls from 'hls.js';
 
+// No client-side seeking here: transcoded streams already begin at the resume
+// offset (server runs ffmpeg -ss), so playback always starts at position 0 of
+// the manifest.
 export function useHls(
-  videoRef: React.RefObject<HTMLVideoElement>,
-  src: string | null,
-  startPosition = 0
+  videoRef: React.RefObject<HTMLVideoElement | null>,
+  src: string | null
 ) {
   const hlsRef = useRef<Hls | null>(null);
 
@@ -14,7 +16,6 @@ export function useHls(
 
     if (Hls.isSupported()) {
       const hls = new Hls({
-        startPosition,
         maxBufferLength: 30,
         maxMaxBufferLength: 60,
         enableWorker: true,
@@ -31,7 +32,6 @@ export function useHls(
       };
     } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
       video.src = src;
-      if (startPosition > 0) video.currentTime = startPosition;
       video.play().catch(() => {});
     }
   }, [src]);

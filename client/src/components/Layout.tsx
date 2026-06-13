@@ -36,7 +36,7 @@ const styles: Record<string, React.CSSProperties> = {
   },
   logo: { color: '#e50914', fontWeight: 700, fontSize: 20, textDecoration: 'none', letterSpacing: -0.5 },
   links: { display: 'flex', gap: 16, flex: 1 },
-  link: { color: '#ccc', textDecoration: 'none', fontSize: 14, ':hover': { color: '#fff' } },
+  link: { color: '#ccc', textDecoration: 'none', fontSize: 14 },
   user: { display: 'flex', alignItems: 'center', gap: 8 },
   logout: {
     background: 'none', border: '1px solid #444', color: '#ccc',

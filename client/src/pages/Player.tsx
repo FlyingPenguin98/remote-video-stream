@@ -2,7 +2,7 @@ import { useRef, useEffect, useState } from 'react';
 import { useParams, useSearchParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { getMovie, getShow } from '../api/library';
-import { startStream, stopStream, buildManifestUrl, buildDirectUrl } from '../api/stream';
+import { startStream, stopStream, pingStream, buildManifestUrl, buildDirectUrl } from '../api/stream';
 import { getProgress, getEpisodeProgress } from '../api/progress';
 import { useHls } from '../hooks/useHls';
 import { useProgress } from '../hooks/useProgress';
@@ -14,22 +14,36 @@ export function Player() {
   const nav = useNavigate();
   const videoRef = useRef<HTMLVideoElement>(null);
 
-  const [sessionId, setSessionId] = useState<string | null>(null);
   const [manifestUrl, setManifestUrl] = useState<string | null>(null);
   const [isDirect, setIsDirect] = useState(false);
   const [resumePos, setResumePos] = useState(0);
   const [error, setError] = useState<string | null>(null);
 
+  // Refs mirror state for the unmount cleanup and ping interval, which would
+  // otherwise capture stale values from the mount-time closure.
+  const sessionRef = useRef<string | null>(null);
+  const isDirectRef = useRef(false);
+
   const numericId = parseInt(id!, 10);
   const mediaItemId = type === 'movie' ? numericId : (seriesId ? parseInt(seriesId) : null);
   const episodeId = type === 'episode' ? numericId : undefined;
 
-  // Fetch media info for title display
+  // Fetch media info for title display and full duration
   const { data: mediaInfo } = useQuery({
     queryKey: ['media-info', type, id, seriesId],
     queryFn: () => type === 'movie' ? getMovie(numericId) : getShow(parseInt(seriesId!)),
     enabled: !!id,
   });
+
+  const currentEpisode = type === 'episode'
+    ? (mediaInfo as any)?.seasons
+        ?.flatMap((s: any) => s.episodes ?? [])
+        ?.find((e: any) => e.id === numericId)
+    : null;
+
+  const knownDurationSec: number | null = type === 'movie'
+    ? (mediaInfo as any)?.durationSec ?? null
+    : currentEpisode?.durationSec ?? null;
 
   const { mutate: initStream } = useMutation({
     mutationFn: async (startOffset: number) => {
@@ -38,14 +52,16 @@ export function Player() {
         startOffset,
       });
     },
-    onSuccess: (data) => {
-      setSessionId(data.sessionId);
-      if (data.isDirect && data.fileUrl) {
+    onSuccess: (data, startOffset) => {
+      sessionRef.current = data.sessionId;
+      isDirectRef.current = data.isDirect;
+      if (data.isDirect) {
         setIsDirect(true);
         const video = videoRef.current;
         if (video) {
-          video.src = data.fileUrl ?? buildDirectUrl(numericId, type === 'movie' ? 'movie' : 'episode');
-          video.currentTime = resumePos;
+          // Direct play streams the raw file; the <video> element seeks itself.
+          video.src = buildDirectUrl(numericId, type === 'movie' ? 'movie' : 'episode');
+          video.currentTime = startOffset;
           video.play().catch(() => {});
         }
       } else {
@@ -68,23 +84,30 @@ export function Player() {
     }
     init();
     return () => {
-      if (sessionId) stopStream(sessionId);
+      // Direct play has no server-side session to tear down.
+      if (sessionRef.current && !isDirectRef.current) stopStream(sessionRef.current);
     };
   }, []);
 
-  useHls(videoRef, !isDirect ? manifestUrl : null, resumePos);
-  useProgress(videoRef, mediaItemId, episodeId);
+  // Keep-alive: without pings the server reaps the transcode session after
+  // SESSION_TIMEOUT and deletes its segments mid-playback.
+  useEffect(() => {
+    const interval = setInterval(() => {
+      if (sessionRef.current && !isDirectRef.current) {
+        pingStream(sessionRef.current, videoRef.current?.currentTime ?? 0);
+      }
+    }, 30000);
+    return () => clearInterval(interval);
+  }, []);
+
+  useHls(videoRef, !isDirect ? manifestUrl : null);
+  useProgress(videoRef, mediaItemId, episodeId, isDirect ? 0 : resumePos, knownDurationSec);
 
   const title = type === 'movie'
     ? (mediaInfo as any)?.title
-    : (() => {
-        const ep = (mediaInfo as any)?.seasons
-          ?.flatMap((s: any) => s.episodes ?? [])
-          ?.find((e: any) => e.id === numericId);
-        return ep
-          ? `${(mediaInfo as any)?.title} S${String(ep.seasonNumber).padStart(2,'0')}E${String(ep.episodeNumber).padStart(2,'0')}`
-          : (mediaInfo as any)?.title;
-      })();
+    : currentEpisode
+      ? `${(mediaInfo as any)?.title} S${String(currentEpisode.seasonNumber).padStart(2, '0')}E${String(currentEpisode.episodeNumber).padStart(2, '0')}`
+      : (mediaInfo as any)?.title;
 
   if (error) {
     return (

@@ -34,7 +34,6 @@ class StreamRepository @Inject constructor(
 
     suspend fun buildManifestUrl(sessionId: String): String {
         val base = prefs.serverUrl.first() ?: "http://localhost:3000"
-        val token = prefs.token.first() ?: ""
         return "$base/api/stream/$sessionId/manifest.m3u8"
     }
 

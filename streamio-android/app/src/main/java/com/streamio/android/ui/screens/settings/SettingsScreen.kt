@@ -1,10 +1,13 @@
 package com.streamio.android.ui.screens.settings
 
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.streamio.android.ui.theme.StreamioRed
@@ -23,6 +26,7 @@ fun SettingsScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
+            .verticalScroll(rememberScrollState())
             .padding(24.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
@@ -43,6 +47,43 @@ fun SettingsScreen(
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                 Text("Role", style = MaterialTheme.typography.bodyLarge)
                 Text(state.role, style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+        }
+
+        HorizontalDivider()
+
+        // Password section
+        Text("Change password", style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.primary)
+
+        OutlinedTextField(
+            value = state.currentPassword,
+            onValueChange = viewModel::onCurrentPasswordChanged,
+            label = { Text("Current password") },
+            modifier = Modifier.fillMaxWidth(),
+            singleLine = true,
+            visualTransformation = PasswordVisualTransformation(),
+        )
+        OutlinedTextField(
+            value = state.newPassword,
+            onValueChange = viewModel::onNewPasswordChanged,
+            label = { Text("New password (min 8 characters)") },
+            modifier = Modifier.fillMaxWidth(),
+            singleLine = true,
+            visualTransformation = PasswordVisualTransformation(),
+            isError = state.passwordError != null,
+            supportingText = state.passwordError?.let { { Text(it, color = MaterialTheme.colorScheme.error) } },
+        )
+        if (state.passwordChanged) {
+            Text("Password updated", color = MaterialTheme.colorScheme.primary, style = MaterialTheme.typography.bodySmall)
+        }
+        OutlinedButton(
+            onClick = viewModel::changePassword,
+            enabled = !state.changingPassword,
+        ) {
+            if (state.changingPassword) {
+                CircularProgressIndicator(modifier = Modifier.size(16.dp), strokeWidth = 2.dp)
+            } else {
+                Text("Update password")
             }
         }
 
@@ -93,7 +134,7 @@ fun SettingsScreen(
 
         HorizontalDivider()
 
-        Spacer(Modifier.weight(1f))
+        Spacer(Modifier.height(8.dp))
 
         Button(
             onClick = viewModel::logout,

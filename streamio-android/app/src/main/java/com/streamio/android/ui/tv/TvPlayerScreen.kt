@@ -1,6 +1,6 @@
 package com.streamio.android.ui.tv
 
-import android.view.KeyEvent
+import androidx.annotation.OptIn
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
@@ -8,14 +8,17 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.input.key.onKeyEvent
-import androidx.compose.ui.input.key.nativeKeyCode
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.media3.common.util.UnstableApi
 import androidx.media3.ui.PlayerView
 import com.streamio.android.ui.screens.player.PlayerViewModel
 
+// PlayerView handles D-pad and media keys itself when focused: center toggles
+// the controller, play/pause/ffwd/rew map to transport controls. System back
+// pops the nav stack as usual.
+@OptIn(UnstableApi::class)
 @Composable
 fun TvPlayerScreen(
     onBack: () -> Unit,
@@ -26,29 +29,7 @@ fun TvPlayerScreen(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color.Black)
-            .onKeyEvent { keyEvent ->
-                when (keyEvent.nativeKeyCode) {
-                    KeyEvent.KEYCODE_DPAD_CENTER, KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE -> {
-                        if (viewModel.player.isPlaying) viewModel.player.pause()
-                        else viewModel.player.play()
-                        true
-                    }
-                    KeyEvent.KEYCODE_MEDIA_FAST_FORWARD -> {
-                        viewModel.player.seekTo(viewModel.player.currentPosition + 10_000)
-                        true
-                    }
-                    KeyEvent.KEYCODE_MEDIA_REWIND -> {
-                        viewModel.player.seekTo((viewModel.player.currentPosition - 10_000).coerceAtLeast(0))
-                        true
-                    }
-                    KeyEvent.KEYCODE_BACK -> {
-                        onBack()
-                        true
-                    }
-                    else -> false
-                }
-            },
+            .background(Color.Black),
     ) {
         if (state.loading) {
             CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
@@ -72,7 +53,9 @@ fun TvPlayerScreen(
                         player = viewModel.player
                         useController = true
                         setShowBuffering(PlayerView.SHOW_BUFFERING_WHEN_PLAYING)
-                        controllerAutoShow = true
+                        isFocusable = true
+                        isFocusableInTouchMode = true
+                        requestFocus()
                     }
                 },
                 modifier = Modifier.fillMaxSize(),

@@ -6,6 +6,7 @@ import android.content.pm.PackageManager
 import android.os.Build
 import android.util.Rational
 import android.view.WindowManager
+import androidx.annotation.OptIn
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
@@ -22,8 +23,10 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
+import androidx.media3.common.util.UnstableApi
 import androidx.media3.ui.PlayerView
 
+@OptIn(UnstableApi::class)
 @Composable
 fun PlayerScreen(
     onBack: () -> Unit,
@@ -42,13 +45,17 @@ fun PlayerScreen(
         }
     }
 
-    // Enter PiP when user leaves the activity (home button, etc.)
+    // Enter PiP when the user leaves the app while a video is playing
     DisposableEffect(lifecycleOwner) {
         val observer = LifecycleEventObserver { _, event ->
-            if (event == Lifecycle.Event.ON_PAUSE) {
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O &&
-                    activity?.packageManager?.hasSystemFeature(PackageManager.FEATURE_PICTURE_IN_PICTURE) == true
-                ) {
+            if (event == Lifecycle.Event.ON_PAUSE &&
+                activity != null &&
+                Build.VERSION.SDK_INT >= Build.VERSION_CODES.O &&
+                activity.packageManager.hasSystemFeature(PackageManager.FEATURE_PICTURE_IN_PICTURE) &&
+                !activity.isInPictureInPictureMode &&
+                viewModel.player.isPlaying
+            ) {
+                runCatching {
                     activity.enterPictureInPictureMode(
                         PictureInPictureParams.Builder()
                             .setAspectRatio(Rational(16, 9))
@@ -93,7 +100,6 @@ fun PlayerScreen(
                 modifier = Modifier.fillMaxSize(),
             )
 
-            // Back button overlay
             IconButton(
                 onClick = onBack,
                 modifier = Modifier

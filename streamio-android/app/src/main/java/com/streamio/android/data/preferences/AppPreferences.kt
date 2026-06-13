@@ -32,6 +32,10 @@ class AppPreferences @Inject constructor(
         context.dataStore.edit { it[serverUrlKey] = url.trimEnd('/') }
     }
 
+    suspend fun clearServerUrl() {
+        context.dataStore.edit { it.remove(serverUrlKey) }
+    }
+
     suspend fun setAuth(token: String, username: String, role: String) {
         context.dataStore.edit {
             it[tokenKey] = token

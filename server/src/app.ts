@@ -8,6 +8,7 @@ import libraryRoutes from './routes/library';
 import streamRoutes from './routes/stream';
 import progressRoutes from './routes/progress';
 import adminRoutes from './routes/admin';
+import imageRoutes from './routes/images';
 import { logger } from './lib/logger';
 
 export function buildApp() {
@@ -28,6 +29,7 @@ export function buildApp() {
   fastify.register(streamRoutes, { prefix: '/api/stream' });
   fastify.register(progressRoutes, { prefix: '/api/progress' });
   fastify.register(adminRoutes, { prefix: '/api/admin' });
+  fastify.register(imageRoutes, { prefix: '/api' });
 
   fastify.get('/api/health', async () => ({ ok: true, ts: Date.now() }));
 

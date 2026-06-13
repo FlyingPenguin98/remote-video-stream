@@ -1,12 +1,12 @@
 import { FastifyInstance } from 'fastify';
 import { createReadStream, statSync, existsSync } from 'fs';
 import { join } from 'path';
+import { v4 as uuidv4 } from 'uuid';
 import { eq, and } from 'drizzle-orm';
 import { db } from '../db/client';
 import { mediaItems, episodes, transcodeSessions } from '../db/schema';
-import { startStream, stopStream, pingSession, getActiveSessionCount } from '../services/transcoder';
+import { startStream, stopStream, pingSession } from '../services/transcoder';
 import { notFound, badRequest, tooManyRequests, serverError, forbidden } from '../lib/errors';
-import { config, SEGMENTS_DIR, IMAGES_DIR } from '../config';
 
 export default async function streamRoutes(fastify: FastifyInstance) {
   // POST /api/stream/start
@@ -20,20 +20,35 @@ export default async function streamRoutes(fastify: FastifyInstance) {
 
     let filePath: string;
     let resolvedMediaItemId: number | undefined = mediaItemId;
+    let isDirectPlay: boolean;
 
     if (episodeId) {
       const ep = await db.select().from(episodes).where(eq(episodes.id, episodeId)).get();
       if (!ep) return notFound(reply);
       filePath = ep.filePath;
       resolvedMediaItemId = mediaItemId ?? ep.seriesId;
+      isDirectPlay = ep.isDirectPlay;
     } else {
       const item = await db.select().from(mediaItems).where(eq(mediaItems.id, mediaItemId!)).get();
       if (!item) return notFound(reply);
       if (!item.filePath) return badRequest(reply, 'No file associated with this item');
       filePath = item.filePath;
+      isDirectPlay = item.isDirectPlay;
     }
 
     if (!existsSync(filePath)) return notFound(reply, 'Media file not found on disk');
+
+    // Direct-play-compatible files skip ffmpeg entirely: the client streams the
+    // file via byte ranges and seeks locally, so no session or ping is needed.
+    if (isDirectPlay) {
+      return reply.send({
+        sessionId: uuidv4(),
+        manifestUrl: '',
+        fileUrl: `/api/stream/files/${episodeId ?? mediaItemId}?type=${episodeId ? 'episode' : 'movie'}`,
+        isDirect: true,
+        resumePosition: startOffset,
+      });
+    }
 
     try {
       const result = await startStream({
@@ -204,19 +219,4 @@ export default async function streamRoutes(fastify: FastifyInstance) {
     }
   );
 
-  // GET /api/images/* — serve cached TMDb images
-  fastify.get<{ Params: { '*': string } }>(
-    '/images/*',
-    { onRequest: [fastify.authenticate] },
-    async (request, reply) => {
-      const imgPath = join(IMAGES_DIR, request.params['*']);
-      if (!existsSync(imgPath)) return notFound(reply);
-      const ext = imgPath.split('.').pop() ?? 'jpg';
-      const mime = ext === 'png' ? 'image/png' : 'image/jpeg';
-      return reply
-        .header('Content-Type', mime)
-        .header('Cache-Control', 'public, max-age=86400')
-        .send(createReadStream(imgPath));
-    }
-  );
 }

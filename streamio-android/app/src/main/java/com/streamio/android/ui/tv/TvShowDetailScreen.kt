@@ -106,8 +106,8 @@ fun TvShowDetailScreen(
                         episode = episode,
                         serverUrl = serverUrl ?: "",
                         onClick = { onEpisodeClick(episode.id, show.id) },
+                        modifier = Modifier.padding(horizontal = 24.dp),
                     )
-                    HorizontalDivider(modifier = Modifier.padding(horizontal = 24.dp))
                 }
             }
         }

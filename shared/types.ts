@@ -7,40 +7,39 @@ export interface User {
   createdAt: number;
 }
 
+// Brief progress embedded in library responses
+export interface WatchProgressBrief {
+  positionSec: number;
+  durationSec: number | null;
+  completed: boolean;
+}
+
+// Formatted media item as returned by the library API
 export interface MediaItem {
   id: number;
   type: 'movie' | 'series';
   title: string;
-  sortTitle: string;
   year: number | null;
   tmdbId: number | null;
-  imdbId: string | null;
   overview: string | null;
-  posterPath: string | null;
-  backdropPath: string | null;
+  posterUrl: string | null;
+  backdropUrl: string | null;
   rating: number | null;
   genres: string[];
-  filePath: string | null;
   durationSec: number | null;
-  fileSize: number | null;
-  codecVideo: string | null;
-  codecAudio: string | null;
-  container: string | null;
   isDirectPlay: boolean;
   scannedAt: number;
-  createdAt: number;
-  watchProgress?: WatchProgress | null;
+  watchProgress?: WatchProgressBrief | null;
 }
 
 export interface Season {
   id: number;
-  seriesId: number;
   seasonNumber: number;
   title: string | null;
   overview: string | null;
-  posterPath: string | null;
+  posterUrl: string | null;
   airDate: string | null;
-  episodes?: Episode[];
+  episodes: Episode[];
 }
 
 export interface Episode {
@@ -51,18 +50,18 @@ export interface Episode {
   episodeNumber: number;
   title: string | null;
   overview: string | null;
-  stillPath: string | null;
+  stillUrl: string | null;
   airDate: string | null;
   durationSec: number | null;
-  filePath: string;
-  fileSize: number | null;
-  codecVideo: string | null;
-  codecAudio: string | null;
-  container: string | null;
   isDirectPlay: boolean;
-  watchProgress?: WatchProgress | null;
+  watchProgress?: WatchProgressBrief | null;
 }
 
+export interface ShowDetail extends MediaItem {
+  seasons: Season[];
+}
+
+// Full progress row as returned by the progress API
 export interface WatchProgress {
   id: number;
   userId: number;
@@ -71,6 +70,14 @@ export interface WatchProgress {
   positionSec: number;
   durationSec: number | null;
   completed: boolean;
+  updatedAt: number;
+}
+
+export interface ContinueWatchingItem {
+  mediaItem: MediaItem;
+  episode: Episode | null;
+  positionSec: number;
+  durationSec: number | null;
   updatedAt: number;
 }
 

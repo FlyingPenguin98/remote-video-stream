@@ -1,6 +1,7 @@
 package com.streamio.android.ui.tv
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -15,10 +16,13 @@ fun TvNavGraph(
     isLoggedIn: Boolean,
 ) {
     val navController = rememberNavController()
-    val startDestination = when {
-        !hasServerUrl -> "setup"
-        !isLoggedIn -> "login"
-        else -> "tv_home"
+    // Frozen at first composition: screens navigate explicitly from then on.
+    val startDestination = remember {
+        when {
+            !hasServerUrl -> "setup"
+            !isLoggedIn -> "login"
+            else -> "tv_home"
+        }
     }
 
     NavHost(navController = navController, startDestination = startDestination) {
